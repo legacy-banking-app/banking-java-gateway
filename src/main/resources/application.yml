@@ -19,5 +19,9 @@ cobol:
   bridge:
     file-path: ${COBOL_FILE_PATH:/opt/cobol/data}
 
+banking:
+  account:
+    number-length: 10   # Must match ACCOUNT-NUMBER PIC width in ACCOUNT.CPY
+
 server:
   port: 8080

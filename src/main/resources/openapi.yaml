@@ -1,0 +1,204 @@
+openapi: 3.0.3
+info:
+  title: FNB Banking Java Gateway API
+  description: >
+    REST API for the FNB banking gateway service. Bridges legacy COBOL
+    mainframe systems with modern Kafka-based event streaming.
+  version: 1.0.0
+
+paths:
+  /api/v1/accounts/{accountNumber}/transactions:
+    post:
+      summary: Submit a transaction
+      operationId: postTransaction
+      parameters:
+        - name: accountNumber
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/AccountNumber'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+      responses:
+        '201':
+          description: Transaction accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountTransaction'
+        '400':
+          description: Invalid request
+
+  /api/v1/accounts/{accountNumber}/balance:
+    get:
+      summary: Query account balance
+      operationId: getBalance
+      parameters:
+        - name: accountNumber
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/AccountNumber'
+      responses:
+        '200':
+          description: Balance inquiry result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '404':
+          description: Account not found
+
+  /api/v1/loans/apply:
+    post:
+      summary: Submit a loan application
+      operationId: applyForLoan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanApplicationRequest'
+      responses:
+        '201':
+          description: Loan application accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanApplication'
+        '400':
+          description: Invalid request
+
+  /api/v1/loans/{loanId}:
+    get:
+      summary: Query loan status
+      operationId: getLoanStatus
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{12}$'
+      responses:
+        '200':
+          description: Loan details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanApplication'
+        '404':
+          description: Loan not found
+
+components:
+  schemas:
+    AccountNumber:
+      type: string
+      minLength: 10
+      maxLength: 10
+      pattern: '^\d{10}$'
+      description: >
+        Zero-padded 10-digit account number.
+        Maps to ACCOUNT-NUMBER PIC 9(10) in
+        legacy-accounts-cobol/copybooks/ACCOUNT.CPY.
+      example: "0000000042"
+
+    TransactionRequest:
+      type: object
+      required:
+        - transactionType
+        - amount
+      properties:
+        transactionType:
+          type: string
+          enum: [DEPOSIT, WITHDRAWAL, TRANSFER]
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+        currency:
+          type: string
+          default: USD
+
+    AccountTransaction:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        accountNumber:
+          $ref: '#/components/schemas/AccountNumber'
+        transactionType:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, REJECTED]
+
+    BalanceResponse:
+      type: object
+      properties:
+        accountNumber:
+          $ref: '#/components/schemas/AccountNumber'
+        balance:
+          type: number
+          format: double
+        currency:
+          type: string
+        accountStatus:
+          type: string
+
+    LoanApplicationRequest:
+      type: object
+      required:
+        - accountNumber
+        - loanType
+        - principalAmount
+        - interestRate
+        - termMonths
+      properties:
+        accountNumber:
+          $ref: '#/components/schemas/AccountNumber'
+        loanType:
+          type: string
+          enum: [PERSONAL, MORTGAGE, AUTO]
+        principalAmount:
+          type: number
+          format: double
+          minimum: 0.01
+        interestRate:
+          type: number
+          format: double
+        termMonths:
+          type: integer
+          minimum: 1
+
+    LoanApplication:
+      type: object
+      properties:
+        loanId:
+          type: string
+        accountNumber:
+          $ref: '#/components/schemas/AccountNumber'
+        loanType:
+          type: string
+        principalAmount:
+          type: number
+          format: double
+        interestRate:
+          type: number
+          format: double
+        termMonths:
+          type: integer
+        status:
+          type: string
